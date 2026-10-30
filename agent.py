@@ -7,9 +7,7 @@ import tools
 from pathlib import Path
 
 
-tools.workspace = Path(sys.argv[2]).resolve(
-    
-)
+tools.workspace = Path(sys.argv[2]).resolve()
 
 load_dotenv()
 client = OpenAI()
@@ -20,9 +18,7 @@ MAX_STEPS = 20
 chat = [{
        "role" :"user" , 
         "content":sys.argv[1]
-}
- 
-]
+}]
 
 INSTRUCTIONS = """You are a coding agent working inside a workspace folder.
 All file paths are relative to that folder. Never include the word 'workspace' in a path.
