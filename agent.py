@@ -27,10 +27,26 @@ Use python3, never python.
 Fix bugs in the source file, never by editing the tests to pass.
 Do not claim success unless the tests actually passed."""
 
-for step in range(MAX_STEPS):
-    print(f" step {step}")
-    response = client.responses.create(model= MODEL, input=chat , tools=TOOLS ,instructions=INSTRUCTIONS)
-    chat.extend(response.output)
+
+while True:
+    try:
+        user_message = input("\n> ").strip()
+    except (EOFError ,KeyboardInterrupt):
+        break
+    if user_message in ("exit" , "quit"):
+        break
+    if not user_message:
+        continue
+
+    chat.append({"role": "user", "content": user_message})
+
+
+ 
+
+    for step in range(MAX_STEPS):
+        print(f" step {step}")
+        response = client.responses.create(model= MODEL, input=chat , tools=TOOLS ,instructions=INSTRUCTIONS)
+        chat.extend(response.output)
 
 
     asked_for_tool = False
@@ -56,6 +72,9 @@ for step in range(MAX_STEPS):
         
         
    
+
+
+
 
 
 

@@ -2,6 +2,7 @@ from pathlib import Path
 import subprocess
 
 workspace = Path(__file__).parent /"workspace"
+MAX_OUTPUT = 4000
 
 
 
@@ -110,7 +111,14 @@ def run_command(command):
         )
     except subprocess.TimeoutExpired:
         return "Error : command took longer than 60 seconds and was stopped"
-    return result.stdout + result.stderr  
+    output = result.stdout + result.stderr          
+
+    if len(output) > MAX_OUTPUT:                   
+        half = MAX_OUTPUT // 2
+        cut = len(output) - MAX_OUTPUT
+        output = output[:half] + f"\n[... {cut} characters cut ...]\n" + output[-half:]
+
+    return f"exit code: {result.returncode}\n{output}"   
 
 
 def run_tool(name , args):
