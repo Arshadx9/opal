@@ -13,7 +13,7 @@ load_dotenv()
 client = OpenAI()
 
 MODEL = "gpt-5-mini"
-MAX_STEPS = 20
+MAX_STEPS = 40
 
 chat = [{
        "role" :"user" , 

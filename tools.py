@@ -1,5 +1,12 @@
 from pathlib import Path
 import subprocess
+import os
+import signal
+
+server = None
+server_log=None
+
+
 
 workspace = Path(__file__).parent /"workspace"
 MAX_OUTPUT = 4000
@@ -57,6 +64,39 @@ TOOLS = [
     "required":["command"]
     }
    
+},
+{
+        "type": "function",
+    "name": "edit_file",
+    "description": "Replace one exact piece of text in an existing file. old_text must match exactly one place in the file.",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "path": {"type": "string", "description": "path relative to the workspace folder"},
+            "old_text": {"type": "string", "description": "the exact text to replace"},
+            "new_text": {"type": "string", "description": "the text to put in its place"},
+        },
+        "required": ["path", "old_text", "new_text"],
+    },
+},
+{
+
+    "type": "function",
+    "name": "start_server",
+    "description": "Start a long-running command (like a web server) in the background. Returns immediately. Output goes to server.log.",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "command": {"type": "string", "description": "the command that starts the server"},
+        },
+        "required": ["command"],
+    }
+},
+{
+    "type": "function",
+    "name": "stop_server",
+    "description": "Stop the server started with start_server.",
+    "parameters": {"type": "object", "properties": {}},
 }
 ]
 
@@ -78,6 +118,7 @@ def write_file(path , text):
     full_path = safe_path(path)
     if full_path is None:
         return "Error : Path is not in workspace"
+    full_path.parent.mkdir(parents=True, exist_ok=True)
     full_path.write_text(text)
     return "ok"
 
@@ -121,6 +162,45 @@ def run_command(command):
     return f"exit code: {result.returncode}\n{output}"   
 
 
+def start_server(command):
+    global server , server_log
+    if server not in None:
+        return "Error: server is already running, call stop_server first"
+
+    server_log = open(workspace / "server_log" , "w")
+    server = subprocess.Popen(
+        command,
+        shell= True,
+        cwd = workspace,
+        stdout=server_log,
+        stderr=server_log,
+        start_new_session=True
+    )
+    return "server started it's output is being written to server_log file"
+
+
+def stop_server():
+    global server , server_log
+    if server is None:
+        return "no server is running"
+
+    try:
+        os.killpg(server.pid , signal.SIGTERM)
+    except ProcessLookupError:
+        pass
+
+
+    try:
+        server.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        os.killpg(server.pid , signal.SIGKILL)
+        server.wait()
+
+    server_log.close()
+    server = None
+    server_log = None
+    return "server stopped"
+
 def run_tool(name , args):
 
   try:
@@ -130,6 +210,12 @@ def run_tool(name , args):
         return write_file(args["path"] , args["text"])
     if name == "run_command":
         return run_command(args["command"])
+    if name == "edit_file":
+        return edit_file(args["path"] , args["old_text"] , args["new_text"])
+    if name == "start_server":
+        return start_server(args["command"])
+    if name == "stop_server":
+        return stop_server()
     return "Error : tool does not exist"
   except Exception as e:
       return f"Error : {e}"
