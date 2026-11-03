@@ -164,10 +164,10 @@ def run_command(command):
 
 def start_server(command):
     global server , server_log
-    if server not in None:
+    if server is not None:
         return "Error: server is already running, call stop_server first"
 
-    server_log = open(workspace / "server_log" , "w")
+    server_log = open(workspace / "server.log" , "w")
     server = subprocess.Popen(
         command,
         shell= True,
