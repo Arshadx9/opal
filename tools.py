@@ -5,6 +5,8 @@ import signal
 
 server = None
 server_log=None
+SKIP = {".git", "node_modules", "__pycache__", ".venv", "dist", "build"}
+
 
 
 
@@ -97,6 +99,30 @@ TOOLS = [
     "name": "stop_server",
     "description": "Stop the server started with start_server.",
     "parameters": {"type": "object", "properties": {}},
+},
+{
+    "type": "function",
+    "name": "list_files",
+    "description": "List files in the workspace (skips node_modules, .git, etc). Use this first to understand an existing project.",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "path": {"type": "string", "description": "folder relative to workspace, default '.'"},
+        },
+    },
+},
+{
+    "type": "function",
+    "name": "grep",
+    "description": "Find lines containing a piece of text across all files. Use it to locate where something is defined or used.",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "pattern": {"type": "string", "description": "text to search for (case-insensitive)"},
+            "path": {"type": "string", "description": "folder to search in, default '.'"},
+        },
+        "required": ["pattern"],
+    },
 }
 ]
 
@@ -200,6 +226,43 @@ def stop_server():
     server = None
     server_log = None
     return "server stopped"
+
+
+def grep(word , path= "."):
+    base = safe_path(path)
+    if base is None:
+        return "Error : Path is not in workspace"
+    out = []
+    for p in sorted(base.rglob("*")):
+        if any(part in SKIP for part in p.parts ) or not p.is_file():
+            continue
+        try:
+            text = p.read_text()
+        except Exception:
+            continue
+        for n, line in enumerate(text.splitlines() , 1):
+            if word.lower() in line.lower():
+                out.append(f"{p.relative_to(workspace.resolve())}:{n}: {line.strip()[:150]}")
+                if len(out) >= 50:
+                    out.append("[... more matches, use a more specific word ...]")
+                    return "\n".join(out)
+    return "\n".join(out) or "no matches"
+
+def list_files(path="."):
+    base = safe_path(path)
+    if base is None:
+        return "Error : Path is not in workspace"
+    lines = []
+    for p in sorted(base.rglob("*")):
+        if any(part in SKIP for part in p.parts):
+            continue
+        if p.is_file():
+            lines.append(str(p.relative_to(workspace.resolve())))
+        if len(lines) >= 300:
+            lines.append("[... more files, use a deeper path ...]")
+            break
+    return "\n".join(lines) or "(empty)"
+
 
 def run_tool(name , args):
 
