@@ -5,6 +5,7 @@ import json
 import sys
 import tools
 from pathlib import Path
+from session import save_event
 
 tools.workspace = Path(sys.argv[1]).resolve()
 tools.workspace.mkdir(parents=True, exist_ok=True)
@@ -53,14 +54,19 @@ try:
         if not user_message:
             continue
 
-        chat.append({"role": "user", "content": user_message})
+        user_item = {"role": "user", "content": user_message}
+        chat.append(user_item)
+        save_event("user", {"item": user_item})
+
 
         for step in range(MAX_STEPS):
             print(f" step {step}")
             response = client.responses.create(
                 model=MODEL, input=chat, tools=TOOLS, instructions=INSTRUCTIONS
             )
-            chat.extend(response.output)
+            for item in response.output:
+                chat.append(item)
+                save_event("model_output", {"item": item.model_dump(mode="json")})
 
             asked_for_tool = False
             for item in response.output:
