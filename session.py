@@ -28,3 +28,15 @@ def save_event(event_type , data):
         os.fsync(file.fileno())
 
     last_event_id = event_id
+
+def load_event(path):
+    events= []
+    with Path(path).open("rb") as file:
+        for line in file:
+            if not line.endswith(b"\n"):
+                break
+            if line.strip():
+                events.append(json.loads(line.decode("utf-8")))
+    return events
+
+    
