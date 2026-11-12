@@ -39,4 +39,29 @@ def load_event(path):
                 events.append(json.loads(line.decode("utf-8")))
     return events
 
-    
+
+def project_chat(events):
+    chat = []
+    pending_calls = set()
+
+    for event in events:
+        if event["type"] not in {"user" , "tool_result" , "model_output"}:
+            continue
+
+        item = event["data"]["item"]
+
+        if event["type"] == "model_output" and item["type"] == "function_call":
+            pending_calls.add(item["call_id"])
+
+        if event["type"] =="tool_result":
+            call_id = item["call_id"]
+            if call_id not in pending_calls:
+                raise ValueError(f"Tool result has no matching call : {call_id}")
+            pending_calls.remove(call_id)
+
+        chat.append(item)
+
+    if pending_calls:
+        raise ValueError(f"Tool calls have no results: {pending_calls}")
+
+    return chat

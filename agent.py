@@ -76,11 +76,13 @@ try:
                     result = run_tool(item.name, args)
                     print(f"  -> {item.name} {args}")
                     print(f"  <- {result[:300]}")
-                    chat.append({
-                        "type": "function_call_output",
-                        "call_id": item.call_id,
-                        "output": result,
-                    })
+                    tool_result_item = {
+                        "type":"function_call_output",
+                        "call_id":item.call_id,
+                        "output": result
+                    }
+                    chat.append(tool_result_item)
+                    save_event("tool_result", {"item": tool_result_item})  
 
             if not asked_for_tool:
                 print(response.output_text)
